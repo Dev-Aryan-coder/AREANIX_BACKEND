@@ -64,6 +64,7 @@ public class TournamentService {
 		if (t == null) return null;
 		t.setRoomId(roomId);
 		t.setRoomPassword(roomPassword);
+		t.setStatus(TournamentStatus.ONGOING);
 		return tournamentRepo.save(t);
 	}
 

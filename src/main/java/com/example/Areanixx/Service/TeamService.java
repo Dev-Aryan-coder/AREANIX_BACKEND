@@ -5,6 +5,7 @@ import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.Areanixx.Entity.Organizer;
+import com.example.Areanixx.Entity.PlayerProfile;
 import com.example.Areanixx.Entity.RecruiterProfile;
 import com.example.Areanixx.Entity.Team;
 import com.example.Areanixx.Entity.TeamMember;
@@ -12,6 +13,7 @@ import com.example.Areanixx.Entity.Tournament;
 import com.example.Areanixx.Entity.TournamentRegistration;
 import com.example.Areanixx.Entity.User;
 import com.example.Areanixx.Repo.OrganizerRepo;
+import com.example.Areanixx.Repo.PlayerProfileRepo;
 import com.example.Areanixx.Repo.RecruiterProfileRepo;
 import com.example.Areanixx.Repo.TeamMemberRepo;
 import com.example.Areanixx.Repo.TeamRepo;
@@ -30,6 +32,9 @@ public class TeamService {
 
 	@Autowired
 	private RecruiterProfileRepo recruiterRepo;
+
+	@Autowired
+	private PlayerProfileRepo playerProfileRepo;
 
 	@Autowired
 	private UserRepo userRepo;
@@ -72,7 +77,21 @@ public class TeamService {
 	}
 
 	public List<TeamMember> getRoster(Long teamId) {
-		return teamMemberRepo.findByTeamIdAndLeftAtIsNull(teamId);
+		List<TeamMember> roster = teamMemberRepo.findByTeamIdAndLeftAtIsNull(teamId);
+		if (roster != null) {
+			for (TeamMember tm : roster) {
+				if (tm.getPlayer() == null && tm.getPlayerId() != null) {
+					PlayerProfile pp = playerProfileRepo.findById(tm.getPlayerId()).orElse(null);
+					if (pp == null) {
+						pp = playerProfileRepo.findByUserId(tm.getPlayerId());
+					}
+					if (pp != null) {
+						tm.setPlayer(pp);
+					}
+				}
+			}
+		}
+		return (roster != null) ? roster : Collections.emptyList();
 	}
 
 	public List<Team> getManagedTeams(Long managerId) {
@@ -99,15 +118,35 @@ public class TeamService {
 	public Map<String, Object> getPlayerTeamDetails(Long playerId) {
 		Map<String, Object> res = new HashMap<>();
 		List<TeamMember> memberships = teamMemberRepo.findByPlayerIdAndLeftAtIsNull(playerId);
+		
+		// Fallback: If not found by given ID, try resolving User ID <-> PlayerProfile ID
+		if (memberships == null || memberships.isEmpty()) {
+			PlayerProfile pp = playerProfileRepo.findByUserId(playerId);
+			if (pp != null) {
+				memberships = teamMemberRepo.findByPlayerIdAndLeftAtIsNull(pp.getId());
+			}
+		}
+		if (memberships == null || memberships.isEmpty()) {
+			PlayerProfile pp = playerProfileRepo.findById(playerId).orElse(null);
+			if (pp != null && pp.getUserId() != null) {
+				memberships = teamMemberRepo.findByPlayerIdAndLeftAtIsNull(pp.getUserId());
+			}
+		}
+
 		if (memberships == null || memberships.isEmpty()) {
 			res.put("hasTeam", false);
+			res.put("team", null);
+			res.put("membership", null);
+			res.put("roster", Collections.emptyList());
+			res.put("teamTournaments", Collections.emptyList());
 			return res;
 		}
+
 		TeamMember activeMember = memberships.get(0);
 		Team team = teamRepo.findById(activeMember.getTeamId()).orElse(null);
-		List<TeamMember> roster = teamMemberRepo.findByTeamIdAndLeftAtIsNull(activeMember.getTeamId());
+		List<TeamMember> roster = getRoster(activeMember.getTeamId());
 
-		// Dynamically resolve manager info (matching recruiter profile or user)
+		// Dynamically resolve manager info
 		if (team != null && team.getManagerId() != null) {
 			RecruiterProfile rp = recruiterRepo.findById(team.getManagerId()).orElse(null);
 			if (rp == null) {
@@ -115,23 +154,20 @@ public class TeamService {
 			}
 			if (rp != null) {
 				if (rp.getUser() != null) {
-					team.setManager(rp.getUser());
 					res.put("managerName", rp.getUser().getFullname());
 				} else if (rp.getUserId() != null) {
 					User u = userRepo.findById(rp.getUserId()).orElse(null);
 					if (u != null) {
-						team.setManager(u);
 						res.put("managerName", u.getFullname());
 					}
 				}
-				if (!res.containsKey("managerName")) {
+				if (!res.containsKey("managerName") || res.get("managerName") == null) {
 					res.put("managerName", rp.getOrganizationName());
 				}
 				res.put("organizationName", rp.getOrganizationName());
 			} else {
 				User u = userRepo.findById(team.getManagerId()).orElse(null);
 				if (u != null) {
-					team.setManager(u);
 					res.put("managerName", u.getFullname());
 				}
 			}
@@ -151,20 +187,24 @@ public class TeamService {
 					Tournament t = tournamentRepo.findById(tr.getTournamentId()).orElse(null);
 					if (t != null) {
 						tMap.put("tournamentName", t.getName());
-						tMap.put("game", t.getGame() != null ? t.getGame() : (t.getGameFocus() != null ? t.getGameFocus() : "BGMI"));
+						tMap.put("game", t.getGame() != null ? t.getGame() : "BGMI");
 						tMap.put("region", t.getRegion() != null ? t.getRegion() : "Asia");
 						tMap.put("prizePool", t.getPrizePool());
 						tMap.put("tournamentStatus", t.getStatus() != null ? t.getStatus().name() : "UPCOMING");
-						tMap.put("startDate", t.getStartDate());
-						tMap.put("roomId", t.getRoomId());
-						tMap.put("roomPassword", t.getRoomPassword());
-						if (t.getOrganizer() != null) {
-							tMap.put("hostName", t.getOrganizer().getUser() != null ? t.getOrganizer().getUser().getFullname() : "Verified Host");
+						tMap.put("startDate", t.getRegistrationOpenAt() != null ? t.getRegistrationOpenAt().toString() : null);
+						tMap.put("roomId", t.getRoomId() != null ? t.getRoomId() : "Not Released Yet");
+						tMap.put("roomPassword", t.getRoomPassword() != null ? t.getRoomPassword() : "Not Released Yet");
+						if (t.getOrganizer() != null && t.getOrganizer().getUser() != null) {
+							tMap.put("hostName", t.getOrganizer().getUser().getFullname());
 						} else if (t.getOrganizerId() != null) {
 							Organizer org = organizerRepo.findById(t.getOrganizerId()).orElse(null);
 							if (org != null && org.getUser() != null) {
 								tMap.put("hostName", org.getUser().getFullname());
+							} else {
+								tMap.put("hostName", "Verified Host");
 							}
+						} else {
+							tMap.put("hostName", "Verified Host");
 						}
 					}
 					teamTournaments.add(tMap);

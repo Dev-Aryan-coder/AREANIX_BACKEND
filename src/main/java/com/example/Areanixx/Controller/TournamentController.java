@@ -37,6 +37,11 @@ public class TournamentController {
 		return ResponseEntity.ok(ts.getTournamentDetail(id));
 	}
 
+	@PatchMapping("/{id}/start")
+	public ResponseEntity<?> startTournament(@PathVariable Long id) {
+		return ResponseEntity.ok(ts.startTournament(id));
+	}
+
 	@PatchMapping("/{id}/release-room")
 	public ResponseEntity<?> releaseRoom(@PathVariable Long id, @RequestParam String roomId, @RequestParam String roomPassword) {
 		return ResponseEntity.ok(ts.releaseRoomDetails(id, roomId, roomPassword));

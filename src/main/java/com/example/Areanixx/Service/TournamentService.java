@@ -59,6 +59,13 @@ public class TournamentService {
 		return tournamentRepo.findById(id).orElse(null);
 	}
 
+	public Tournament startTournament(Long id) {
+		Tournament t = tournamentRepo.findById(id).orElse(null);
+		if (t == null) return null;
+		t.setStatus(TournamentStatus.ONGOING);
+		return tournamentRepo.save(t);
+	}
+
 	public Tournament releaseRoomDetails(Long id, String roomId, String roomPassword) {
 		Tournament t = tournamentRepo.findById(id).orElse(null);
 		if (t == null) return null;

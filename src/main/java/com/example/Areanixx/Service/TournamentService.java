@@ -143,7 +143,7 @@ public class TournamentService {
 			Long pId = r.getPlayerId();
 			if (pId == null) continue;
 
-			int xpToAdd = (r.getPlacement() != null && r.getPlacement() == 1) ? winnerXpAmount : participantXpAmount;
+			int xpToAdd = (r.getPlacement() == 1) ? winnerXpAmount : participantXpAmount;
 			totalXpAwarded += xpToAdd;
 
 			PlayerXP pxp = xpRepo.findByPlayerId(pId);
@@ -158,11 +158,11 @@ public class TournamentService {
 			com.example.Areanixx.Entity.XPTransaction tx = new com.example.Areanixx.Entity.XPTransaction();
 			tx.setPlayerId(pId);
 			tx.setAmount(xpToAdd);
-			tx.setSource(r.getPlacement() != null && r.getPlacement() == 1 ? com.example.Areanixx.Entity.XPSource.PLACEMENT : com.example.Areanixx.Entity.XPSource.TOURNAMENT_PLAY);
+			tx.setSource(r.getPlacement() == 1 ? com.example.Areanixx.Entity.XPSource.PLACEMENT : com.example.Areanixx.Entity.XPSource.TOURNAMENT_PLAY);
 			tx.setDescription("XP awarded for tournament placement #" + r.getPlacement() + " in tournament ID " + tournamentId);
 			xpTxRepo.save(tx);
 
-			if (r.getPlacement() != null && r.getPlacement() == 1) {
+			if (r.getPlacement() == 1) {
 				com.example.Areanixx.Entity.Achievement ach = new com.example.Areanixx.Entity.Achievement();
 				ach.setPlayerId(pId);
 				ach.setTitle("Tournament Champion");

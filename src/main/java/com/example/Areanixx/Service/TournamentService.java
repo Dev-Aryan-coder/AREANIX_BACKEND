@@ -159,14 +159,14 @@ public class TournamentService {
 			tx.setPlayerId(pId);
 			tx.setAmount(xpToAdd);
 			tx.setSource(r.getPlacement() == 1 ? com.example.Areanixx.Entity.XPSource.PLACEMENT : com.example.Areanixx.Entity.XPSource.TOURNAMENT_PLAY);
-			tx.setDescription("XP awarded for tournament placement #" + r.getPlacement() + " in tournament ID " + tournamentId);
+			tx.setReferenceId(tournamentId);
 			xpTxRepo.save(tx);
 
 			if (r.getPlacement() == 1) {
 				com.example.Areanixx.Entity.Achievement ach = new com.example.Areanixx.Entity.Achievement();
 				ach.setPlayerId(pId);
 				ach.setTitle("Tournament Champion");
-				ach.setDescription("Took 1st Place in tournament ID " + tournamentId);
+				ach.setTournamentId(tournamentId);
 				achievementRepo.save(ach);
 			}
 		}

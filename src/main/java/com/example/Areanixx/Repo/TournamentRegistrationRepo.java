@@ -11,4 +11,6 @@ public interface TournamentRegistrationRepo extends JpaRepository<TournamentRegi
 	List<TournamentRegistration> findByTeamId(Long teamId);
 	List<TournamentRegistration> findByTournamentIdAndTeamId(Long tournamentId, Long teamId);
 	List<TournamentRegistration> findByTournamentIdAndPlayerId(Long tournamentId, Long playerId);
+	List<TournamentRegistration> findByTournamentIdIn(List<Long> tournamentIds);
+	List<TournamentRegistration> findByTournamentIdInAndStatus(List<Long> tournamentIds, RegistrationStatus status);
 }

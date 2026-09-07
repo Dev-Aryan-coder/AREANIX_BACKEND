@@ -3,6 +3,8 @@ package com.example.Areanixx.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.Areanixx.Entity.Dispute;
@@ -80,10 +82,7 @@ public class TournamentService {
 	}
 
 	public List<TournamentRegistration> getTournamentRegistrations(Long tournamentId) {
-		List<TournamentRegistration> list = registrationRepo.findByTournamentIdAndStatus(tournamentId, RegistrationStatus.APPROVED);
-		if (list == null || list.isEmpty()) {
-			list = registrationRepo.findByTournamentIdIn(Collections.singletonList(tournamentId));
-		}
+		List<TournamentRegistration> list = registrationRepo.findByTournamentId(tournamentId);
 		return (list != null) ? list : Collections.emptyList();
 	}
 

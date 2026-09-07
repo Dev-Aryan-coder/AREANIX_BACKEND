@@ -6,6 +6,7 @@ import com.example.Areanixx.Entity.RegistrationStatus;
 import com.example.Areanixx.Entity.TournamentRegistration;
 
 public interface TournamentRegistrationRepo extends JpaRepository<TournamentRegistration, Long> {
+	List<TournamentRegistration> findByTournamentId(Long tournamentId);
 	List<TournamentRegistration> findByTournamentIdAndStatus(Long tournamentId, RegistrationStatus status);
 	List<TournamentRegistration> findByPlayerId(Long playerId);
 	List<TournamentRegistration> findByTeamId(Long teamId);

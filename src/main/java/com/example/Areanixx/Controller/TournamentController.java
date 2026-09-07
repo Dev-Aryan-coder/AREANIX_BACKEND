@@ -82,6 +82,11 @@ public class TournamentController {
 		return ResponseEntity.status(HttpStatus.CREATED).body("result recorded successfully!!!");
 	}
 
+	@PatchMapping("/{id}/mark-prize-paid")
+	public ResponseEntity<?> markPrizePaid(@PathVariable Long id) {
+		return ResponseEntity.ok(ts.markPrizePaid(id));
+	}
+
 	@PatchMapping("/{id}/complete")
 	public ResponseEntity<?> complete(@PathVariable Long id) {
 		return ResponseEntity.ok(ts.completeTournament(id));

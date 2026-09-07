@@ -134,6 +134,15 @@ public class TournamentService {
 		return resultRepo.save(r);
 	}
 
+	public Tournament markPrizePaid(Long tournamentId) {
+		Tournament t = tournamentRepo.findById(tournamentId).orElse(null);
+		if (t != null) {
+			t.setPrizePoolPaid(true);
+			return tournamentRepo.save(t);
+		}
+		return null;
+	}
+
 	public Map<String, Object> completeTournament(Long tournamentId) {
 		Tournament t = tournamentRepo.findById(tournamentId).orElse(null);
 		if (t == null) return null;

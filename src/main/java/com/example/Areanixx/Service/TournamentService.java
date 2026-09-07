@@ -155,45 +155,90 @@ public class TournamentService {
 		int winnerXpAmount = 500;
 		int participantXpAmount = 100;
 		int totalXpAwarded = 0;
+		Set<Long> awardedPlayerIds = new HashSet<>();
 
-		for (TournamentResult r : results) {
-			Long pId = r.getPlayerId();
-			if (pId == null) continue;
+		// 1. Process entered results (if any)
+		if (results != null && !results.isEmpty()) {
+			for (TournamentResult r : results) {
+				int xpToAdd = (r.getPlacement() == 1) ? winnerXpAmount : participantXpAmount;
 
-			int xpToAdd = (r.getPlacement() == 1) ? winnerXpAmount : participantXpAmount;
-			totalXpAwarded += xpToAdd;
-
-			PlayerXP pxp = xpRepo.findByPlayerId(pId);
-			if (pxp == null) {
-				pxp = new PlayerXP();
-				pxp.setPlayerId(pId);
-				pxp.setTotalXp(0);
+				if (r.getPlayerId() != null) {
+					Long pId = r.getPlayerId();
+					awardedPlayerIds.add(pId);
+					totalXpAwarded += xpToAdd;
+					awardXpToPlayer(pId, xpToAdd, r.getPlacement() == 1, tournamentId);
+				} else if (r.getTeamId() != null) {
+					List<TeamMember> members = teamMemberRepo.findByTeamIdAndLeftAtIsNull(r.getTeamId());
+					if (members != null) {
+						for (TeamMember tm : members) {
+							Long pId = tm.getPlayerId();
+							if (pId != null && !awardedPlayerIds.contains(pId)) {
+								awardedPlayerIds.add(pId);
+								totalXpAwarded += xpToAdd;
+								awardXpToPlayer(pId, xpToAdd, r.getPlacement() == 1, tournamentId);
+							}
+						}
+					}
+				}
 			}
-			pxp.setTotalXp(pxp.getTotalXp() + xpToAdd);
-			xpRepo.save(pxp);
+		}
 
-			com.example.Areanixx.Entity.XPTransaction tx = new com.example.Areanixx.Entity.XPTransaction();
-			tx.setPlayerId(pId);
-			tx.setAmount(xpToAdd);
-			tx.setSource(r.getPlacement() == 1 ? com.example.Areanixx.Entity.XPSource.PLACEMENT : com.example.Areanixx.Entity.XPSource.TOURNAMENT_PLAY);
-			tx.setReferenceId(tournamentId);
-			xpTxRepo.save(tx);
-
-			if (r.getPlacement() == 1) {
-				com.example.Areanixx.Entity.Achievement ach = new com.example.Areanixx.Entity.Achievement();
-				ach.setPlayerId(pId);
-				ach.setTitle("Tournament Champion");
-				ach.setTournamentId(tournamentId);
-				achievementRepo.save(ach);
+		// 2. Fallback: Award participation XP to all approved registrations who haven't been awarded yet
+		List<TournamentRegistration> approvedRegs = registrationRepo.findByTournamentIdAndStatus(tournamentId, RegistrationStatus.APPROVED);
+		if (approvedRegs != null) {
+			for (TournamentRegistration reg : approvedRegs) {
+				if (reg.getPlayerId() != null && !awardedPlayerIds.contains(reg.getPlayerId())) {
+					awardedPlayerIds.add(reg.getPlayerId());
+					totalXpAwarded += participantXpAmount;
+					awardXpToPlayer(reg.getPlayerId(), participantXpAmount, false, tournamentId);
+				} else if (reg.getTeamId() != null) {
+					List<TeamMember> members = teamMemberRepo.findByTeamIdAndLeftAtIsNull(reg.getTeamId());
+					if (members != null) {
+						for (TeamMember tm : members) {
+							Long pId = tm.getPlayerId();
+							if (pId != null && !awardedPlayerIds.contains(pId)) {
+								awardedPlayerIds.add(pId);
+								totalXpAwarded += participantXpAmount;
+								awardXpToPlayer(pId, participantXpAmount, false, tournamentId);
+							}
+						}
+					}
+				}
 			}
 		}
 
 		Map<String, Object> summary = new HashMap<>();
 		summary.put("tournamentId", tournamentId);
 		summary.put("status", "COMPLETED");
-		summary.put("participantsAwarded", results.size());
+		summary.put("participantsAwarded", awardedPlayerIds.size());
 		summary.put("totalXpAwarded", totalXpAwarded);
 		return summary;
+	}
+
+	private void awardXpToPlayer(Long pId, int xpToAdd, boolean isChampion, Long tournamentId) {
+		PlayerXP pxp = xpRepo.findByPlayerId(pId);
+		if (pxp == null) {
+			pxp = new PlayerXP();
+			pxp.setPlayerId(pId);
+			pxp.setTotalXp(0);
+		}
+		pxp.setTotalXp(pxp.getTotalXp() + xpToAdd);
+		xpRepo.save(pxp);
+
+		com.example.Areanixx.Entity.XPTransaction tx = new com.example.Areanixx.Entity.XPTransaction();
+		tx.setPlayerId(pId);
+		tx.setAmount(xpToAdd);
+		tx.setSource(isChampion ? com.example.Areanixx.Entity.XPSource.PLACEMENT : com.example.Areanixx.Entity.XPSource.TOURNAMENT_PLAY);
+		tx.setReferenceId(tournamentId);
+		xpTxRepo.save(tx);
+
+		if (isChampion) {
+			com.example.Areanixx.Entity.Achievement ach = new com.example.Areanixx.Entity.Achievement();
+			ach.setPlayerId(pId);
+			ach.setTitle("Tournament Champion");
+			ach.setTournamentId(tournamentId);
+			achievementRepo.save(ach);
+		}
 	}
 
 	public List<TournamentResult> getLiveLeaderboard(Long tournamentId) {

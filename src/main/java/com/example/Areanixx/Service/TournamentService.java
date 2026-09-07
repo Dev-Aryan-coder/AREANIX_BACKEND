@@ -51,6 +51,8 @@ public class TournamentService {
 	private TournamentReportRepo reportRepo;
 	@Autowired
 	private DisputeRepo disputeRepo;
+	@Autowired
+	private TeamMemberRepo teamMemberRepo;
 
 	public List<Tournament> getTournamentsByStatus(TournamentStatus status) {
 		return tournamentRepo.findByStatus(status);

@@ -232,6 +232,15 @@ public class OrganizerService {
 		return dto;
 	}
 
+	public Dispute resolveDispute(Long disputeId) {
+		Dispute d = disputeRepo.findById(disputeId).orElse(null);
+		if (d != null) {
+			d.setStatus(ReportStatus.RESOLVED);
+			return disputeRepo.save(d);
+		}
+		return null;
+	}
+
 	public List<Dispute> getDisputesForOrganizer(Long organizerId) {
 		Organizer o = organizerRepo.findById(organizerId).orElse(null);
 		if (o == null) {

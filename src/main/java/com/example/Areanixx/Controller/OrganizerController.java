@@ -64,6 +64,13 @@ public class OrganizerController {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("organizer not found with id: " + id);
 	}
 
+	@PatchMapping("/dispute/{id}/resolve")
+	public ResponseEntity<?> resolveDispute(@PathVariable Long id) {
+		Dispute d = os.resolveDispute(id);
+		if (d != null) return ResponseEntity.ok(d);
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Dispute not found with id: " + id);
+	}
+
 	@GetMapping("/{id}/disputes")
 	public ResponseEntity<List<Dispute>> getDisputes(@PathVariable Long id) {
 		return ResponseEntity.ok(os.getDisputesForOrganizer(id));

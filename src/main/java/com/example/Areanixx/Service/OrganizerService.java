@@ -235,7 +235,7 @@ public class OrganizerService {
 	public Dispute resolveDispute(Long disputeId) {
 		Dispute d = disputeRepo.findById(disputeId).orElse(null);
 		if (d != null) {
-			d.setStatus(ReportStatus.RESOLVED);
+			d.setStatus(ReportStatus.REVIEWED);
 			return disputeRepo.save(d);
 		}
 		return null;

@@ -15,6 +15,11 @@ public class TeamController {
 	@Autowired
 	private TeamService ts;
 
+	@GetMapping("/all")
+	public List<Team> getAllTeams() {
+		return ts.getAllTeams();
+	}
+
 	@PostMapping("/create")
 	public ResponseEntity<String> createTeam(@RequestBody Team t) {
 		ts.createTeam(t);

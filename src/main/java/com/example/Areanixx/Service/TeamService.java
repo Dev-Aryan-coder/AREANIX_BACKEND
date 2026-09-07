@@ -48,6 +48,10 @@ public class TeamService {
 	@Autowired
 	private OrganizerRepo organizerRepo;
 
+	public List<Team> getAllTeams() {
+		return teamRepo.findAll();
+	}
+
 	public void createTeam(Team t) {
 		teamRepo.save(t);
 	}

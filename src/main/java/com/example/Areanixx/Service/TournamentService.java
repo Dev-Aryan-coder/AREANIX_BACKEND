@@ -75,6 +75,14 @@ public class TournamentService {
 		return tournamentRepo.save(t);
 	}
 
+	public List<TournamentRegistration> getTournamentRegistrations(Long tournamentId) {
+		List<TournamentRegistration> list = registrationRepo.findByTournamentIdAndStatus(tournamentId, RegistrationStatus.APPROVED);
+		if (list == null || list.isEmpty()) {
+			list = registrationRepo.findByTournamentIdIn(Collections.singletonList(tournamentId));
+		}
+		return (list != null) ? list : Collections.emptyList();
+	}
+
 	public TournamentRegistration registerForTournament(Long tournamentId, Long playerId, Long teamId) {
 		// Prevent duplicate registration for the same tournament & team
 		if (teamId != null) {
